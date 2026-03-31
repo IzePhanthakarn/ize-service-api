@@ -5,16 +5,9 @@ use crate::utils::time::STANDARD_DATETIME_FORMAT;
 use axum::http::StatusCode;
 
 // 💡 Helper Function สำหรับตรวจสอบว่าเป็น Super Admin หรือไม่
-fn check_super_admin(pool: &DbPool, role_id: String) -> Result<(), (StatusCode, ErrorResponse)> {
-    let mut conn = pool.get().map_err(|_| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ErrorResponse { status: 500, error: "Database error".to_string() })
-    })?;
+fn check_super_admin(role_id: String) -> Result<(), (StatusCode, ErrorResponse)> {
 
-    let role_name = repository::get_role_name_by_id(&mut conn, &role_id).map_err(|_| {
-        (StatusCode::FORBIDDEN, ErrorResponse { status: 403, error: "Access denied".to_string() })
-    })?;
-
-    if role_name != "super_admin" {
+    if role_id != "ro_super_admin" {
         return Err((StatusCode::FORBIDDEN, ErrorResponse { status: 403, error: "Requires super admin privileges".to_string() }));
     }
     Ok(())
@@ -23,7 +16,7 @@ fn check_super_admin(pool: &DbPool, role_id: String) -> Result<(), (StatusCode, 
 // 💡 Logic สร้าง Role ใหม่
 pub async fn create_role(pool: &DbPool, user_role_id: String, req: CreateRoleRequest) -> Result<RoleResponse, (StatusCode, ErrorResponse)> {
     // 1. ตรวจสอบสิทธิ์ก่อนเลย!
-    check_super_admin(pool, user_role_id)?;
+    check_super_admin( user_role_id)?;
 
     let mut conn = pool.get().unwrap();
     let new_role = NewRole { name: req.name.to_lowercase(), description: req.description }; // บังคับให้ชื่อ Role เป็นตัวเล็กทั้งหมดเพื่อความเป๊ะ
@@ -42,7 +35,7 @@ pub async fn create_role(pool: &DbPool, user_role_id: String, req: CreateRoleReq
 
 // 💡 Logic ดึง Role ทั้งหมด
 pub async fn get_all_roles(pool: &DbPool, user_role_id: String) -> Result<Vec<RoleResponse>, (StatusCode, ErrorResponse)> {
-    check_super_admin(pool, user_role_id)?;
+    check_super_admin(user_role_id)?;
 
     let mut conn = pool.get().unwrap();
     let roles = repository::get_all_roles(&mut conn).unwrap_or_default();

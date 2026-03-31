@@ -6,4 +6,6 @@ pub fn routes() -> Router<DbPool> {
         .route("/", get(handlers::list_users)) // GET /api/v1/users
         .route("/me", get(handlers::get_profile))
         .route("/{id}/role", patch(handlers::update_user_role))
+        .route("/{id}/profile", patch(handlers::update_profile))
+        .route("/{id}/status", patch(handlers::set_user_status)) // 💡 เพิ่ม Route สำหรับเปลี่ยนสถานะ Active
 }

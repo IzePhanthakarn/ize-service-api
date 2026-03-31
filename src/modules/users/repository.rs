@@ -1,4 +1,5 @@
 use crate::modules::roles::models::Role;
+use crate::modules::users::dtos::UpdateProfileRequest;
 use crate::schema::{roles, user_details, users};
 // 💡 เพิ่มการดึง Model User (ตัวเต็ม) เข้ามาด้วย
 use crate::modules::users::models::{NewUser, NewUserDetail, User, UserDetail}; 
@@ -23,10 +24,8 @@ pub fn get_user_by_email(conn: &mut PgConnection, email: &str) -> Result<User, d
         .first(conn)
 }
 
-pub fn get_user_by_id(conn: &mut PgConnection, user_id: String) -> Result<User, diesel::result::Error> {
-    users::table
-        .find(user_id) // .find() ใน Diesel คือการหาจาก Primary Key (id) ทันทีครับ
-        .first(conn)
+pub fn get_user_by_id(conn: &mut PgConnection, user_id: &str) -> Result<User, diesel::result::Error> {
+    users::table.find(user_id).first(conn)
 }
 
 pub fn get_all_users_with_roles(
@@ -92,4 +91,29 @@ pub fn get_user_full_profile(conn: &mut PgConnection, target_user_id: &str) -> R
         .inner_join(user_details::table)
         .filter(users::id.eq(target_user_id))
         .first::<(User, UserDetail)>(conn)
+}
+
+pub fn update_user_details(
+    conn: &mut PgConnection,
+    target_id: &str,
+    req: UpdateProfileRequest
+) -> Result<UserDetail, diesel::result::Error> {
+    diesel::update(user_details::table.find(target_id))
+        .set((
+            user_details::first_name.eq(req.first_name),
+            user_details::last_name.eq(req.last_name),
+            user_details::phone_number.eq(req.phone_number),
+            user_details::avatar_url.eq(req.avatar_url),
+        ))
+        .get_result::<UserDetail>(conn)
+}
+
+pub fn update_user_active_status(
+    conn: &mut PgConnection,
+    target_id: &str,
+    status: bool
+) -> Result<User, diesel::result::Error> {
+    diesel::update(users::table.find(target_id))
+        .set(users::is_active.eq(status))
+        .get_result::<User>(conn)
 }

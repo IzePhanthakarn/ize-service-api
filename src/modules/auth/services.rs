@@ -64,41 +64,36 @@ pub async fn login(pool: &DbPool, req: LoginRequest) -> Result<AuthResponse, Str
     let mut conn = pool.get().map_err(|_| "Database connection error".to_string())?;
 
     // 1. ค้นหา User จาก Email
-    let user = match user_repo::get_user_by_email(&mut conn, &req.email) {
-        Ok(u) => u,
-        // Trick: แม้จะหาอีเมลไม่เจอ เราก็ควรตอบกว้างๆ ว่า "Invalid email or password"
-        // เพื่อป้องกันไม่ให้ Hacker รู้ว่ามีอีเมลนี้อยู่ในระบบหรือเปล่า (Security Best Practice)
-        Err(_) => {
-            return Err("Invalid email or password".to_string());
-        }
-    };
+    let user = user_repo::get_user_by_email(&mut conn, &req.email).map_err(|_| {
+        // Security Best Practice: ตอบกว้างๆ เพื่อป้องกัน Account Enumeration
+        "Invalid email or password".to_string()
+    })?;
 
-    // 2. ตรวจสอบว่า User มีรหัสผ่านไหม (อาจจะ Login ผ่าน Google OAuth มาก่อนเลยไม่มีรหัส)
-    let password_hash = match user.password_hash {
-        Some(hash) => hash,
-        None => {
-            return Err("Please login using your OAuth provider".to_string());
-        }
-    };
+    // 💡 2. ตรวจสอบสถานะบัญชีก่อน (Check Active Status)
+    if !user.is_active {
+        return Err("This account has been disabled. Please contact support.".to_string());
+    }
 
-    // 3. ตรวจสอบความถูกต้องของรหัสผ่านด้วย Argon2
+    // 3. ตรวจสอบว่า User มีรหัสผ่านไหม (กรณีสมัครผ่าน OAuth)
+    let password_hash = user.password_hash.ok_or_else(|| {
+        "Please login using your OAuth provider".to_string()
+    })?;
+
+    // 4. ตรวจสอบความถูกต้องของรหัสผ่าน
+    // ใช้ verify_password(&str, &str)
     if !verify_password(&req.password, &password_hash) {
         return Err("Invalid email or password".to_string());
     }
 
-    // 4. ตรวจสอบว่าบัญชีนี้โดนระงับการใช้งานอยู่หรือไม่
-    if !user.is_active {
-        return Err("This account has been disabled".to_string());
-    }
+    // 5. ออก Token (Access & Refresh)
+    // 💡 อย่าลืมใช้ .clone() เพราะ user.id และ user.role_id เป็น String 
+    // และเราต้องการเก็บ user ไว้ใช้งานต่อ (ถ้ามี) หรือส่งเข้า generate_tokens
+    let (access_token, refresh_token) = generate_tokens(user.id.clone(), user.role_id.clone())
+        .map_err(|_| "Failed to generate tokens".to_string())?;
 
-    // 5. รหัสผ่านถูกต้อง! สั่งออกคู่ Token ให้เลย (Access & Refresh)
-    let (access_token, refresh_token) = generate_tokens(user.id, user.role_id).map_err(|_|
-        "Failed to generate tokens".to_string()
-    )?;
-
-    // 6. ส่ง Response กลับไปพร้อม Status 200
+    // 6. ส่ง Response กลับ
     Ok(AuthResponse {
-        status: 200, // Login สำเร็จใช้ 200 OK
+        status: 200,
         message: "Login successful".to_string(),
         access_token,
         refresh_token,
