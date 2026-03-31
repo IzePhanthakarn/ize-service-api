@@ -1,9 +1,8 @@
 use crate::modules::roles::models::Role;
-use crate::schema::{roles, users};
+use crate::schema::{roles, user_details, users};
 // 💡 เพิ่มการดึง Model User (ตัวเต็ม) เข้ามาด้วย
-use crate::modules::users::models::{NewUser, User}; 
+use crate::modules::users::models::{NewUser, NewUserDetail, User, UserDetail}; 
 use diesel::prelude::*;
-use uuid::Uuid;
 
 pub fn email_exists(conn: &mut PgConnection, email: &str) -> Result<bool, diesel::result::Error> {
     diesel::select(diesel::dsl::exists(
@@ -24,7 +23,7 @@ pub fn get_user_by_email(conn: &mut PgConnection, email: &str) -> Result<User, d
         .first(conn)
 }
 
-pub fn get_user_by_id(conn: &mut PgConnection, user_id: Uuid) -> Result<User, diesel::result::Error> {
+pub fn get_user_by_id(conn: &mut PgConnection, user_id: String) -> Result<User, diesel::result::Error> {
     users::table
         .find(user_id) // .find() ใน Diesel คือการหาจาก Primary Key (id) ทันทีครับ
         .first(conn)
@@ -69,10 +68,28 @@ pub fn get_users_only(
 
 pub fn update_user_role(
     conn: &mut PgConnection, 
-    user_id: Uuid, 
-    new_role_id: Uuid
+    user_id: &str, 
+    new_role_id: String
 ) -> Result<User, diesel::result::Error> {
     diesel::update(users::table.find(user_id))
         .set(users::role_id.eq(new_role_id))
         .get_result::<User>(conn)
+}
+
+pub fn create_user_detail(conn: &mut PgConnection, target_user_id: &str) -> Result<usize, diesel::result::Error> {
+    let new_detail = NewUserDetail {
+        user_id: target_user_id.to_string(),
+    };
+
+    diesel::insert_into(user_details::table)
+        .values(&new_detail)
+        .execute(conn)
+}
+
+// 💡 แถม: ฟังก์ชันสำหรับดึงข้อมูล Profile พร้อมรายละเอียดส่วนตัว (Join Table)
+pub fn get_user_full_profile(conn: &mut PgConnection, target_user_id: &str) -> Result<(User, UserDetail), diesel::result::Error> {
+    users::table
+        .inner_join(user_details::table)
+        .filter(users::id.eq(target_user_id))
+        .first::<(User, UserDetail)>(conn)
 }

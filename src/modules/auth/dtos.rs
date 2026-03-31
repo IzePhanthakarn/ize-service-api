@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct RegisterRequest {
@@ -13,9 +12,9 @@ pub struct RegisterRequest {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
-    pub id: Uuid,
+    pub id: String,
     pub email: String,
-    pub role_id: Uuid,
+    pub role_id: String,
     pub created_at: String,
 }
 

@@ -1,6 +1,5 @@
 use axum::{Json, extract::{Path, Query, State}};
 use axum::http::StatusCode;
-use uuid::Uuid;
 use crate::{config::database::DbPool, modules::users::dtos::UpdateUserRoleRequest};
 use crate::error::ErrorResponse;
 use crate::modules::auth::dtos::UserResponse; use crate::modules::users::dtos::{UserListResponse, UserProfileResponse};
@@ -84,7 +83,7 @@ pub async fn list_users(
     tag = "Users",
     security(("bearer_auth" = [])),
     params(
-        ("id" = Uuid, Path, description = "User ID to update")
+        ("id" = String, Path, description = "User ID to update")
     ),
     request_body = UpdateUserRoleRequest,
     responses(
@@ -96,7 +95,7 @@ pub async fn list_users(
 pub async fn update_user_role(
     State(pool): State<DbPool>,
     claims: Claims,
-    Path(id): Path<Uuid>, // 💡 รับ ID จาก URL
+    Path(id): Path<String>, // 💡 รับ ID จาก URL
     Json(payload): Json<UpdateUserRoleRequest>,
 ) -> Result<Json<UserProfileResponse>, (StatusCode, Json<ErrorResponse>)> {
     match services::update_user_role(&pool, claims.role_id, id, payload).await {

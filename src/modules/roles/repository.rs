@@ -2,17 +2,16 @@ use crate::modules::users::models::User;
 use crate::schema::{roles, users};
 use crate::modules::roles::models::{NewRole, Role}; // 💡 ดึง Model มาใช้
 use diesel::prelude::*;
-use uuid::Uuid;
 
 // ค้นหา ID ของ Role จากชื่อ (เช่น หา id ของคำว่า "user")
-pub fn get_role_id_by_name(conn: &mut PgConnection, role_name: &str) -> Result<Uuid, diesel::result::Error> {
+pub fn get_role_id_by_name(conn: &mut PgConnection, role_name: &str) -> Result<String, diesel::result::Error> {
     roles::table
         .filter(roles::name.eq(role_name))
         .select(roles::id)
         .first(conn)
 }
 
-pub fn get_role_name_by_id(conn: &mut PgConnection, role_id: Uuid) -> Result<String, diesel::result::Error> {
+pub fn get_role_name_by_id(conn: &mut PgConnection, role_id: &str) -> Result<String, diesel::result::Error> {
     roles::table
         .find(role_id)
         .select(roles::name)
