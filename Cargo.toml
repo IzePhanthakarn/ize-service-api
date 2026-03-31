@@ -18,9 +18,9 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 
 # Authentication & Security
-jsonwebtoken = "10.3.0" # สำหรับทำ JWT (Access/Refresh Token)
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] } # สำหรับทำ JWT (Access/Refresh Token)
 argon2 = "0.5.3" # อัลกอริทึม Hash Password ที่ปลอดภัยที่สุดในปัจจุบัน
-rand_core = "0.10.0" # ใช้ร่วมกับ argon2
+rand_core = { version = "0.6.4", features = ["std", "getrandom"] }
 
 # Utilities
 dotenvy = "0.15.7" # สำหรับโหลดไฟล์ .env

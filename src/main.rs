@@ -8,6 +8,7 @@ pub mod config;
 pub mod error;
 pub mod middlewares;
 pub mod modules;
+pub mod schema;
 pub mod utils;
 
 #[tokio::main]

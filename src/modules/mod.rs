@@ -1,6 +1,5 @@
 pub mod auth;
 pub mod roles;
-pub mod system_services;
 pub mod users;
 
 // ประกาศ router module ที่เราเพิ่งสร้าง
